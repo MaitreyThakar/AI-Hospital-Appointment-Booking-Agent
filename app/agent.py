@@ -6,6 +6,7 @@ import sqlite3
 from datetime import datetime
 from collections import OrderedDict
 from typing import Any, Optional
+from dotenv import load_dotenv
 from openai import OpenAI
 
 from app.db import get_db, get_setting, get_settings
@@ -241,12 +242,13 @@ def run_turn(
 
         contact_info = get_setting(conn, "contact_info", "Front desk +91-00000-00000, 09:00-18:00.")
 
+        load_dotenv(override=True)
         if client is None:
             api_key = os.getenv("LLM_API_KEY", "")
             base_url = os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1")
             client = OpenAI(api_key=api_key, base_url=base_url, timeout=30.0)
 
-        model = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
+        model = os.getenv("LLM_MODEL", "qwen/qwen3.8-27b")
         temp = float(get_setting(conn, "temperature", 0.2))
 
         system_prompt = build_system_prompt(conn, session, now)
