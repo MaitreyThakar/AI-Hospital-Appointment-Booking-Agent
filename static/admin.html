@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hospital Admin Panel</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { background: #f4f6f8; color: #212529; }
+  header { background: #1a2a3a; color: #fff; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 1.2rem; }
+  header a { color: #8cb4f5; text-decoration: none; font-size: 0.9rem; }
+  .nav-tabs { display: flex; background: #fff; border-bottom: 1px solid #dee2e6; padding: 0 20px; }
+  .tab-btn { padding: 12px 18px; border: none; background: none; font-size: 0.95rem; cursor: pointer; color: #495057; border-bottom: 3px solid transparent; }
+  .tab-btn.active { color: #0066cc; border-bottom-color: #0066cc; font-weight: 600; }
+  .main-content { padding: 20px; max-width: 1200px; margin: 0 auto; }
+  .panel { display: none; background: #fff; padding: 20px; border-radius: 6px; border: 1px solid #dee2e6; }
+  .panel.active { display: block; }
+  table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e9ecef; }
+  th { background: #f8f9fa; font-weight: 600; }
+  .btn { padding: 6px 12px; border-radius: 4px; border: 1px solid #ced4da; background: #fff; cursor: pointer; font-size: 0.85rem; }
+  .btn-primary { background: #0066cc; color: #fff; border-color: #0066cc; }
+  .btn-danger { background: #dc3545; color: #fff; border-color: #dc3545; }
+  .form-group { margin-bottom: 14px; }
+  label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.85rem; }
+  input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 0.9rem; }
+  textarea { min-height: 70px; resize: vertical; }
+  .form-inline { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 15px; }
+  .alert { padding: 10px 14px; border-radius: 4px; margin-bottom: 15px; display: none; font-size: 0.9rem; }
+  .alert-danger { background: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+  .alert-success { background: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; }
+  .modal { background: #fff; padding: 20px; border-radius: 6px; width: 450px; max-width: 90%; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Hospital Admin Panel</h1>
+  <a href="/" target="_blank">Open Patient Chat ↗</a>
+</header>
+<div class="nav-tabs">
+  <button class="tab-btn active" onclick="switchTab('departments')">Departments</button>
+  <button class="tab-btn" onclick="switchTab('doctors')">Doctors</button>
+  <button class="tab-btn" onclick="switchTab('schedules')">Schedules</button>
+  <button class="tab-btn" onclick="switchTab('slots')">Slots</button>
+  <button class="tab-btn" onclick="switchTab('appointments')">Appointments</button>
+  <button class="tab-btn" onclick="switchTab('settings')">Settings & Prompts</button>
+</div>
+<div class="main-content">
+  <div id="alert-box" class="alert"></div>
+
+  <!-- Departments Panel -->
+  <div id="panel-departments" class="panel active">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3>Hospital Departments</h3>
+      <button class="btn btn-primary" onclick="openAddModal('departments')">+ Add Department</button>
+    </div>
+    <table id="table-departments">
+      <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Doctors Panel -->
+  <div id="panel-doctors" class="panel">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3>Doctors List</h3>
+      <button class="btn btn-primary" onclick="openAddModal('doctors')">+ Add Doctor</button>
+    </div>
+    <table id="table-doctors">
+      <thead><tr><th>ID</th><th>Name</th><th>Department</th><th>Specialty</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Schedules Panel -->
+  <div id="panel-schedules" class="panel">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3>Doctor Schedules</h3>
+      <button class="btn btn-primary" onclick="openAddModal('schedules')">+ Add Schedule</button>
+    </div>
+    <table id="table-schedules">
+      <thead><tr><th>ID</th><th>Doctor ID</th><th>Weekday</th><th>Start</th><th>End</th><th>Slot (mins)</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Slots Panel -->
+  <div id="panel-slots" class="panel">
+    <h3>Doctor Slots View & Block/Unblock</h3>
+    <div class="form-inline">
+      <div style="flex:1">
+        <label>Doctor ID</label>
+        <input type="number" id="slot-doc-id" value="1">
+      </div>
+      <div style="flex:1">
+        <label>Date (YYYY-MM-DD)</label>
+        <input type="date" id="slot-date">
+      </div>
+      <button class="btn btn-primary" onclick="loadSlots()">View Slots</button>
+    </div>
+    <table id="table-slots">
+      <thead><tr><th>Time</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Appointments Panel -->
+  <div id="panel-appointments" class="panel">
+    <h3>Appointments</h3>
+    <table id="table-appointments">
+      <thead><tr><th>ID</th><th>Date</th><th>Time</th><th>Doctor</th><th>Department</th><th>Patient</th><th>Phone</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Settings Panel -->
+  <div id="panel-settings" class="panel">
+    <h3>Chatbot Prompts & Booking Rules</h3>
+    <form id="settings-form" onsubmit="saveSettings(event)" style="margin-top:15px;">
+      <div class="form-group"><label>Clinic Name</label><input type="text" id="set-clinic_name"></div>
+      <div class="form-group"><label>Agent Role</label><textarea id="set-agent_role"></textarea></div>
+      <div class="form-group"><label>Conversation Style</label><textarea id="set-conversation_style"></textarea></div>
+      <div class="form-group"><label>Supported Services</label><textarea id="set-supported_services"></textarea></div>
+      <div class="form-group"><label>Appointment Rules</label><textarea id="set-appointment_rules"></textarea></div>
+      <div class="form-group"><label>Request Handling Instructions</label><textarea id="set-request_handling_instructions"></textarea></div>
+      <div class="form-group"><label>Contact Info</label><textarea id="set-contact_info"></textarea></div>
+      <div class="form-group"><label>Welcome Message</label><textarea id="set-welcome_message"></textarea></div>
+      <div style="display:flex; gap:15px;">
+        <div class="form-group" style="flex:1;"><label>Min Notice (Hours, 0-72)</label><input type="number" id="set-min_notice_hours"></div>
+        <div class="form-group" style="flex:1;"><label>Max Days Ahead (1-180)</label><input type="number" id="set-max_days_ahead"></div>
+        <div class="form-group" style="flex:1;"><label>Max Active Bookings/Phone (1-10)</label><input type="number" id="set-max_active_bookings_per_phone"></div>
+        <div class="form-group" style="flex:1;"><label>Temperature (0.0-1.0)</label><input type="number" step="0.1" id="set-temperature"></div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="padding:10px 20px;">Save All Settings</button>
+    </form>
+  </div>
+</div>
+
+<!-- Add Modal -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <h3 id="modal-title" style="margin-bottom:12px;">Add Item</h3>
+    <div id="modal-fields"></div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const weekdays = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  let currentResource = "";
+
+  function showAlert(msg, isErr=true) {
+    const box = document.getElementById("alert-box");
+    box.className = "alert " + (isErr ? "alert-danger" : "alert-success");
+    box.textContent = msg;
+    box.style.display = "block";
+    setTimeout(() => { box.style.display = "none"; }, 5000);
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    event.target.classList.add("active");
+    document.getElementById("panel-" + tab).classList.add("active");
+    loadTab(tab);
+  }
+
+  function esc(s) {
+    if (s === null || s === undefined) return "";
+    return String(s);
+  }
+
+  async function api(path, method="GET", body=null) {
+    const opts = { method, headers: {} };
+    if (body) {
+      opts.headers["Content-Type"] = "application/json";
+      opts.body = JSON.stringify(body);
+    }
+    const res = await fetch(path, opts);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || "Request failed (" + res.status + ")");
+    }
+    return res.json();
+  }
+
+  async function loadTab(tab) {
+    try {
+      if (tab === "departments") {
+        const list = await api("/api/admin/departments");
+        const tbody = document.querySelector("#table-departments tbody");
+        tbody.textContent = "";
+        list.forEach(item => {
+          const tr = document.createElement("tr");
+          tr.appendChild(createTd(item.id));
+          tr.appendChild(createTd(item.name));
+          tr.appendChild(createTd(item.description));
+          const act = document.createElement("td");
+          const del = document.createElement("button");
+          del.className = "btn btn-danger";
+          del.textContent = "Delete";
+          del.onclick = async () => {
+            if (!confirm("Delete department " + item.name + "?")) return;
+            try {
+              await api("/api/admin/departments/" + item.id, "DELETE");
+              loadTab("departments");
+            } catch (e) { showAlert(e.message); }
+          };
+          act.appendChild(del);
+          tr.appendChild(act);
+          tbody.appendChild(tr);
+        });
+      } else if (tab === "doctors") {
+        const list = await api("/api/admin/doctors");
+        const tbody = document.querySelector("#table-doctors tbody");
+        tbody.textContent = "";
+        list.forEach(item => {
+          const tr = document.createElement("tr");
+          tr.appendChild(createTd(item.id));
+          tr.appendChild(createTd(item.name));
+          tr.appendChild(createTd(item.department_name || item.department_id));
+          tr.appendChild(createTd(item.specialty));
+          tr.appendChild(createTd(item.active ? "Active" : "Inactive"));
+          const act = document.createElement("td");
+          if (item.active) {
+            const del = document.createElement("button");
+            del.className = "btn btn-danger";
+            del.textContent = "Deactivate";
+            del.onclick = async () => {
+              if (!confirm("Deactivate doctor " + item.name + "?")) return;
+              try {
+                await api("/api/admin/doctors/" + item.id, "DELETE");
+                loadTab("doctors");
+              } catch (e) { showAlert(e.message); }
+            };
+            act.appendChild(del);
+          }
+          tr.appendChild(act);
+          tbody.appendChild(tr);
+        });
+      } else if (tab === "schedules") {
+        const list = await api("/api/admin/schedules");
+        const tbody = document.querySelector("#table-schedules tbody");
+        tbody.textContent = "";
+        list.forEach(item => {
+          const tr = document.createElement("tr");
+          tr.appendChild(createTd(item.id));
+          tr.appendChild(createTd(item.doctor_id));
+          tr.appendChild(createTd(weekdays[item.weekday] || item.weekday));
+          tr.appendChild(createTd(item.start_time));
+          tr.appendChild(createTd(item.end_time));
+          tr.appendChild(createTd(item.slot_minutes));
+          const act = document.createElement("td");
+          const del = document.createElement("button");
+          del.className = "btn btn-danger";
+          del.textContent = "Delete";
+          del.onclick = async () => {
+            if (!confirm("Delete schedule #" + item.id + "?")) return;
+            try {
+              await api("/api/admin/schedules/" + item.id, "DELETE");
+              loadTab("schedules");
+            } catch (e) { showAlert(e.message); }
+          };
+          act.appendChild(del);
+          tr.appendChild(act);
+          tbody.appendChild(tr);
+        });
+      } else if (tab === "appointments") {
+        const list = await api("/api/admin/appointments");
+        const tbody = document.querySelector("#table-appointments tbody");
+        tbody.textContent = "";
+        list.forEach(item => {
+          const tr = document.createElement("tr");
+          tr.appendChild(createTd(item.id));
+          tr.appendChild(createTd(item.date));
+          tr.appendChild(createTd(item.time));
+          tr.appendChild(createTd(item.doctor_name));
+          tr.appendChild(createTd(item.department_name));
+          tr.appendChild(createTd(item.patient_name));
+          tr.appendChild(createTd(item.patient_phone));
+          tr.appendChild(createTd(item.status));
+          const act = document.createElement("td");
+          if (item.status === "booked") {
+            const cancelBtn = document.createElement("button");
+            cancelBtn.className = "btn btn-danger";
+            cancelBtn.textContent = "Cancel";
+            cancelBtn.onclick = async () => {
+              if (!confirm("Cancel appointment #" + item.id + "?")) return;
+              try {
+                await api("/api/admin/appointments/" + item.id + "/cancel", "POST");
+                loadTab("appointments");
+              } catch (e) { showAlert(e.message); }
+            };
+            act.appendChild(cancelBtn);
+          }
+          tr.appendChild(act);
+          tbody.appendChild(tr);
+        });
+      } else if (tab === "settings") {
+        const s = await api("/api/admin/settings");
+        for (const [k, v] of Object.entries(s)) {
+          const el = document.getElementById("set-" + k);
+          if (el) el.value = v;
+        }
+      }
+    } catch (e) {
+      showAlert(e.message);
+    }
+  }
+
+  function createTd(text) {
+    const td = document.createElement("td");
+    td.textContent = esc(text);
+    return td;
+  }
+
+  async function loadSlots() {
+    const docId = document.getElementById("slot-doc-id").value;
+    const date = document.getElementById("slot-date").value;
+    if (!docId || !date) return showAlert("Select Doctor and Date first");
+    try {
+      const list = await api(`/api/admin/slots?doctor_id=${docId}&date=${date}`);
+      const tbody = document.querySelector("#table-slots tbody");
+      tbody.textContent = "";
+      list.forEach(s => {
+        const tr = document.createElement("tr");
+        tr.appendChild(createTd(s.time));
+        tr.appendChild(createTd(s.status));
+        const act = document.createElement("td");
+        if (s.status === "available") {
+          const blk = document.createElement("button");
+          blk.className = "btn btn-danger";
+          blk.textContent = "Block";
+          blk.onclick = async () => {
+            try {
+              await api("/api/admin/blocked-slots", "POST", { doctor_id: parseInt(docId), date, time: s.time });
+              loadSlots();
+            } catch (e) { showAlert(e.message); }
+          };
+          act.appendChild(blk);
+        } else if (s.status === "blocked") {
+          const unblk = document.createElement("button");
+          unblk.className = "btn btn-primary";
+          unblk.textContent = "Unblock";
+          unblk.onclick = async () => {
+            try {
+              await api(`/api/admin/blocked-slots?doctor_id=${docId}&date=${date}&time=${s.time}`, "DELETE");
+              loadSlots();
+            } catch (e) { showAlert(e.message); }
+          };
+          act.appendChild(unblk);
+        }
+        tr.appendChild(act);
+        tbody.appendChild(tr);
+      });
+    } catch (e) { showAlert(e.message); }
+  }
+
+  async function saveSettings(e) {
+    e.preventDefault();
+    const payload = {
+      clinic_name: document.getElementById("set-clinic_name").value,
+      agent_role: document.getElementById("set-agent_role").value,
+      conversation_style: document.getElementById("set-conversation_style").value,
+      supported_services: document.getElementById("set-supported_services").value,
+      appointment_rules: document.getElementById("set-appointment_rules").value,
+      request_handling_instructions: document.getElementById("set-request_handling_instructions").value,
+      contact_info: document.getElementById("set-contact_info").value,
+      welcome_message: document.getElementById("set-welcome_message").value,
+      min_notice_hours: parseInt(document.getElementById("set-min_notice_hours").value),
+      max_days_ahead: parseInt(document.getElementById("set-max_days_ahead").value),
+      max_active_bookings_per_phone: parseInt(document.getElementById("set-max_active_bookings_per_phone").value),
+      temperature: parseFloat(document.getElementById("set-temperature").value),
+    };
+    try {
+      await api("/api/admin/settings", "PUT", payload);
+      showAlert("Settings successfully saved and live!", false);
+    } catch (err) { showAlert(err.message); }
+  }
+
+  function openAddModal(res) {
+    currentResource = res;
+    const title = document.getElementById("modal-title");
+    const container = document.getElementById("modal-fields");
+    container.textContent = "";
+    title.textContent = "Add " + res.slice(0, -1);
+
+    if (res === "departments") {
+      container.appendChild(makeInputGroup("Department Name", "f_name", "text"));
+      container.appendChild(makeInputGroup("Description", "f_description", "text"));
+    } else if (res === "doctors") {
+      container.appendChild(makeInputGroup("Doctor Name", "f_name", "text"));
+      container.appendChild(makeInputGroup("Department ID", "f_dept_id", "number"));
+      container.appendChild(makeInputGroup("Specialty", "f_specialty", "text"));
+    } else if (res === "schedules") {
+      container.appendChild(makeInputGroup("Doctor ID", "f_doc_id", "number"));
+      container.appendChild(makeInputGroup("Weekday (0=Mon, 6=Sun)", "f_weekday", "number"));
+      container.appendChild(makeInputGroup("Start Time (HH:MM)", "f_start", "text"));
+      container.appendChild(makeInputGroup("End Time (HH:MM)", "f_end", "text"));
+      container.appendChild(makeInputGroup("Slot Minutes (5-240)", "f_slot", "number"));
+    }
+    document.getElementById("add-modal").style.display = "flex";
+  }
+
+  function makeInputGroup(lblText, id, type) {
+    const div = document.createElement("div");
+    div.className = "form-group";
+    const lbl = document.createElement("label");
+    lbl.textContent = lblText;
+    const inp = document.createElement("input");
+    inp.type = type;
+    inp.id = id;
+    div.appendChild(lbl);
+    div.appendChild(inp);
+    return div;
+  }
+
+  function closeModal() {
+    document.getElementById("add-modal").style.display = "none";
+  }
+
+  async function submitModal() {
+    try {
+      if (currentResource === "departments") {
+        await api("/api/admin/departments", "POST", {
+          name: document.getElementById("f_name").value,
+          description: document.getElementById("f_description").value
+        });
+      } else if (currentResource === "doctors") {
+        await api("/api/admin/doctors", "POST", {
+          name: document.getElementById("f_name").value,
+          department_id: parseInt(document.getElementById("f_dept_id").value),
+          specialty: document.getElementById("f_specialty").value
+        });
+      } else if (currentResource === "schedules") {
+        await api("/api/admin/schedules", "POST", {
+          doctor_id: parseInt(document.getElementById("f_doc_id").value),
+          weekday: parseInt(document.getElementById("f_weekday").value),
+          start_time: document.getElementById("f_start").value,
+          end_time: document.getElementById("f_end").value,
+          slot_minutes: parseInt(document.getElementById("f_slot").value)
+        });
+      }
+      closeModal();
+      loadTab(currentResource);
+    } catch (e) {
+      showAlert(e.message);
+    }
+  }
+
+  // Set default slot date to today
+  document.getElementById("slot-date").value = new Date().toISOString().split("T")[0];
+  loadTab("departments");
+</script>
+</body>
+</html>

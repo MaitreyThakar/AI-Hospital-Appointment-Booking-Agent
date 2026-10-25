@@ -3,6 +3,13 @@ import tempfile
 import pytest
 from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
+
+# Set test environment defaults before module imports
+os.environ.setdefault("ADMIN_USER", "admin")
+os.environ.setdefault("ADMIN_PASSWORD", "test-secret-123")
+os.environ.setdefault("CLINIC_TIMEZONE", "Asia/Kolkata")
+os.environ.setdefault("LLM_MODEL", "llama-3.3-70b-versatile")
+
 from app.db import get_db, init_db
 from app.availability import get_clinic_timezone
 
