@@ -4,11 +4,32 @@ import pytest
 from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
 
-# Set test environment defaults before module imports
+from dotenv import load_dotenv
+load_dotenv()
+
+# Set test environment defaults if not provided in .env
 os.environ.setdefault("ADMIN_USER", "admin")
 os.environ.setdefault("ADMIN_PASSWORD", "test-secret-123")
 os.environ.setdefault("CLINIC_TIMEZONE", "Asia/Kolkata")
-os.environ.setdefault("LLM_MODEL", "llama-3.3-70b-versatile")
+os.environ.setdefault("LLM_MODEL", "qwen/qwen3.8-27b")
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--repeat",
+        action="store",
+        default=os.getenv("REPEAT", "1"),
+        help="Number of times to repeat live scenarios",
+    )
+
+
+@pytest.fixture
+def repeat_count(request):
+    try:
+        return int(request.config.getoption("--repeat", 1))
+    except Exception:
+        return 1
+
 
 from app.db import get_db, init_db
 from app.availability import get_clinic_timezone

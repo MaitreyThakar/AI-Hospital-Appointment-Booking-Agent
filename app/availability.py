@@ -150,12 +150,19 @@ def check_availability(conn: sqlite3.Connection, args: dict[str, Any], now: date
         dept_id = d_row["id"]
 
     if doctor_name:
+        # Strip common title prefixes and split into search terms
+        raw_name = doctor_name.strip().lower()
+        cleaned_search = re.sub(r"^dr\.?\s+", "", raw_name)
+        terms = [t for t in cleaned_search.split() if len(t) >= 2] or [raw_name]
+        
+        # Build conditions: either exact substring of full string, or all search terms present
+        like_clauses = " AND ".join(["LOWER(d.name) LIKE ?"] * len(terms))
         query = (
             "SELECT d.id, d.name, d.specialty, dep.name as department "
             "FROM doctors d JOIN departments dep ON d.department_id = dep.id "
-            "WHERE d.active = 1 AND LOWER(d.name) LIKE ?"
+            f"WHERE d.active = 1 AND ({like_clauses} OR LOWER(d.name) LIKE ?)"
         )
-        params = [f"%{doctor_name.strip().lower()}%"]
+        params = [f"%{t}%" for t in terms] + [f"%{raw_name}%"]
         if dept_id is not None:
             query += " AND d.department_id = ?"
             params.append(dept_id)
@@ -163,6 +170,7 @@ def check_availability(conn: sqlite3.Connection, args: dict[str, Any], now: date
         docs = cur.fetchall()
         if not docs:
             return {"ok": False, "error": "unknown_doctor", "message": f"Unknown doctor: {doctor_name}"}
+
     else:
         cur = conn.execute(
             "SELECT d.id, d.name, d.specialty, dep.name as department "

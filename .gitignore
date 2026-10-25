@@ -3,3 +3,4 @@ data/*.db
 __pycache__/
 .venv/
 .pytest_cache/
+graphify-out/
