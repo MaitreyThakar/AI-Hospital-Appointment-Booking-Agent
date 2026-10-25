@@ -248,7 +248,7 @@ def run_turn(
             base_url = os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1")
             client = OpenAI(api_key=api_key, base_url=base_url, timeout=30.0)
 
-        model = os.getenv("LLM_MODEL", "qwen/qwen3.8-27b")
+        model = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
         temp = float(get_setting(conn, "temperature", 0.2))
 
         system_prompt = build_system_prompt(conn, session, now)
@@ -361,6 +361,8 @@ def run_turn(
         try:
             raw_assistant_reply = call_llm_and_dispatch(current_messages)
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             # Friendly unavailable response on network/LLM failure
             err_reply = f"Sorry, the assistant is temporarily unavailable. Please contact the front desk at {contact_info}."
             missing = compute_missing_information(session, "general_inquiry")
